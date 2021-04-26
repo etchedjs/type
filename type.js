@@ -94,7 +94,7 @@ export const number = model(base, {
 
 export const object = model(base, {
   set value (value) {
-    if (typeof value === 'object' && value !== null) {
+    if (typeof value !== 'object' || value === null) {
       throw new TypeError('Must be an object')
     }
   }
