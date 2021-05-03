@@ -139,19 +139,29 @@ console.log(await generator.next()) // { value: undefined, done: true }
 
 The flags are some special types to add a specific behavior on a type
 
-Syntax: `flaggedType = model(flag, { type })`
-
 #### `nullish`
 
 A flag to allow a nullish value
+
+```js
+model(nullish, { type })
+```
 
 #### `param`
 
 A flag to mark a type as a function parameter
 
+```js
+model(param, type)
+```
+
 #### `rest`
 
-A flag that extends `param` but for a rest parameter
+A flag that extends `param` but for a rest parameterparameter
+
+```js
+model(rest, type)
+```
 
 ## Extend a type
 
