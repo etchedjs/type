@@ -169,6 +169,8 @@ export default model(number, {
 })
 ```
 
+More some complex type examples: https://gist.github.com/Lcfvs/4b1523653bfe54605b82113170299f61 
+
 ## Licence
 
 MIT
