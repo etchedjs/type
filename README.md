@@ -2,6 +2,8 @@
 
 [![](https://raw.githubusercontent.com/Lcfvs/library-peer/main/badge.svg)](https://github.com/Lcfvs/library-peer#readme)
 
+_Type **all** your JS code, only in JS, even on the runtime_
+
 A utility to type the [`@etchedjs/etched`](https://github.com/etchedjs/etched) models.
 
 
@@ -39,19 +41,15 @@ export default model(
 )
 ```
 
-### `types`
-
-#### `array`
-
-A type to validate an array
+### Types
 
 #### `boolean`
 
 A type to validate a boolean
 
-#### `func`
+#### `bigint`
 
-A type to validate a function
+A type to validate a bigint
 
 #### `number`
 
@@ -69,6 +67,32 @@ A type to validate a string
 
 A type to validate a symbol
 
+#### `array`
+
+A type to validate an array
+
+#### `arrayOf`
+
+A type to validate an array of provided type
+
+#### `func`
+
+A type to validate a function
+
+#### `asyncFunc`
+
+A type to validate an asynchronous function
+
+#### `generatorFunc`
+
+A type to validate a generator function
+
+#### `asyncGeneratorFunc`
+
+A type to validate an asynchronous generator function
+
+### Methods
+
 #### `etched(model)`
 
 Returns a type to validate an object that **etches** the provided `model` 
@@ -79,7 +103,55 @@ Returns a type to validate an object that **fulfills** the provided `model`
 
 #### `instance(constructor)`
 
-Returns a type to validate an object that **inherit** from the provided `constructor` prototype 
+Returns a type to validate an object that **inherit** from the provided `constructor` prototype
+
+#### `fn(type, expected = null, [...params] = [])`
+
+* `type`: Must be one of `func`/`asyncFunc`/`generator`/`asyncGenerator`
+* `expected`: Must be a type of be **nullish**, to validate the return value (or any promised/yielded one)
+* `params`: an optional array containing the argument types, inheriting from `param` or `rest`
+  
+Returns a type to validate a function, with a `.of(fn, throwable)` that returns a typed function that wraps the provided one.
+
+Example
+```js
+const fnType = types.fn(types.asyncGeneratorFunc, types.string, [
+  model(types.param, types.string),
+  model(types.rest, types.string)
+])
+
+const fn = fnType.of(async function * (first, ...rest) {
+   const values = [first, ...rest]
+
+   while (values.length) {
+      yield values.shift()
+   }
+}, e => { throw e })
+
+const generator = fn('first', 'second')
+
+console.log(await generator.next()) // { value: 'first', done: false }
+console.log(await generator.next()) // { value: 'second', done: false }
+console.log(await generator.next()) // { value: undefined, done: true }
+```
+
+### Flags
+
+The flags are some special types to add a specific behavior on a type
+
+Syntax: `flaggedType = model(flag, { type })`
+
+#### `nullish`
+
+A flag to allow a nullish value
+
+#### `param`
+
+A flag to mark a type as a function parameter
+
+#### `rest`
+
+A flag that extends `param` but for a rest parameter
 
 ## Extend a type
 
