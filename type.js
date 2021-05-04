@@ -28,30 +28,37 @@ const validate = ({ ...inputs }, model, throwable) => {
   }
 }
 
-const validateExpected = (value, type = null) => {
-  if (type === null && value !== undefined) {
-    throw new TypeError('Must match an expected type')
-  }
+const validateExpected = (value, throwable, type = null) => {
+  try {
+    if (type === null && value !== undefined) {
+      throw new TypeError('Must match an expected type')
+    }
 
-  return fulfill(type, { value }).value
+    return fulfill(type, {value}).value
+  } catch (error) {
+    throw throwable(error)
+  }
 }
 
-const validateParams = (params, value, key) => {
+const validateMerged = (params, types, throwable) => merge(params, types)
+  .reduce(validateParams, [types, throwable])
+
+const validateParams = ([params, throwable], value, key) => {
   const param = params[key] ?? null
 
   if (param === null) {
     const last = params[params.length - 1]
 
     if (!etches(last, rest)) {
-      throw new ReferenceError(`Unknown param @${key}`)
+      throw throwable(new ReferenceError(`Unknown param @${key}`))
     }
 
-    validateExpected(value, last)
+    validateExpected(value, throwable, last)
   } else {
-    validateExpected(value, param)
+    validateExpected(value, throwable, param)
   }
 
-  return params
+  return [params, throwable]
 }
 
 const wrappers = new WeakMap()
@@ -59,71 +66,55 @@ const wrappers = new WeakMap()
 const wrappings = {
   0: (name, Fn, types, throwable) => ({
     [name] (...params) {
-      try {
-        merge(params, types.params).reduce(validateParams, types.params)
+      validateMerged(params, types.params, throwable)
 
-        const value = new.target ? new Fn(...params) : Fn(...params)
+      const value = new.target ? new Fn(...params) : Fn(...params)
 
-        return validateExpected(value, types.expected)
-      } catch (e) {
-        throwable(e)
-      }
+      return validateExpected(value, throwable, types.expected)
     }
   }[name]),
   1: (name, fn, types, throwable) => ({
     async [name] (...params) {
-      try {
-        merge(params, types.params).reduce(validateParams, types.params)
+      validateMerged(params, types.params, throwable)
 
-        const value = await fn(...params)
+      const value = await fn(...params)
 
-        return validateExpected(value, types.expected)
-      } catch (e) {
-        throwable(e)
-      }
+      return validateExpected(value, throwable, types.expected)
     }
   }[name]),
   2: (name, fn, types, throwable) => ({
     * [name] (...params) {
-      try {
-        merge(params, types.params).reduce(validateParams, types.params)
+      validateMerged(params, types.params, throwable)
 
-        const generatorFunc = fn(...params)
-        let value
+      const generator = fn(...params)
+      let value
 
-        while (1) {
-          const result = generatorFunc.next(value)
+      while (1) {
+        const result = generator.next(value)
 
-          if (result.done) {
-            break
-          }
-
-          value = yield validateExpected(result.value, types.expected)
+        if (result.done) {
+          break
         }
-      } catch (e) {
-        throwable(e)
+
+        value = yield validateExpected(result.value, throwable, types.expected)
       }
     }
   }[name]),
   3: (name, fn, types, throwable) => ({
     async * [name] (...params) {
-      try {
-        merge(params, types.params).reduce(validateParams, types.params)
+      validateMerged(params, types.params, throwable)
 
-        const generatorFunc = fn(...params)
-        let value
+      const generator = fn(...params)
+      let value
 
-        while (1) {
-          const result = await generatorFunc.next(value)
+      while (1) {
+        const result = await generator.next(value)
 
-          if (result.done) {
-            break
-          }
-
-          value = yield validateExpected(result.value, types.expected)
+        if (result.done) {
+          break
         }
-      } catch (e) {
-        throwable(e)
+
+        value = yield validateExpected(result.value, throwable, types.expected)
       }
     }
   }[name])
