@@ -19,24 +19,26 @@ const merge = (params, types) => {
   ]
 }
 
+const throwing = (throwable, { constructor, errors, message }) =>
+  throwable(constructor.bind(null, ...errors ? [errors, message] : [message]))
+
 const validate = ({ ...inputs }, model, throwable) => {
   try {
     fulfill(model, inputs)
   } catch ({ errors: [[, error]] }) {
-    throwable(error)
-    throw new Error('Must be thrown')
+    throw throwing(throwable, error)
   }
 }
 
 const validateExpected = (value, throwable, type = null) => {
-  try {
-    if (type === null && value !== undefined) {
-      throw new TypeError('Must match an expected type')
-    }
+  if (type === null && value !== undefined) {
+    throw throwing(throwable, new TypeError('Must match an expected type'))
+  }
 
-    return fulfill(type, {value}).value
+  try {
+    return fulfill(type, { value }).value
   } catch (error) {
-    throw throwable(error)
+    throw throwing(throwable, error)
   }
 }
 
@@ -121,7 +123,9 @@ const wrappings = {
 }
 
 const type = (name, type, throwable, canBeNullish = false) => {
-  etches(base, type, error => { throw error })
+  if (!etches(base, type)) {
+    throw new TypeError('Must be a type')
+  }
 
   const validator = !canBeNullish ? type : model(nullish, { type })
 
@@ -145,7 +149,7 @@ export const nullish = model(
         if ((value ?? null) !== null) {
           const { type } = this
 
-          validate({ value }, type, error => { throw error })
+          validate({ value }, type, throwable => { throw throwable() })
         }
       } catch (error) {
         const { constructor, errors } = error

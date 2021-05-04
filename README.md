@@ -33,11 +33,11 @@ const user = model() // just used for a self-reference
 
 export default model(
   user,
-  type('id', types.number, e => { throw e }), // must be a number
-  type('name', types.string, e => { throw e }), // must be a string
-  type('createdAt', types.instance(Date), e => { throw e }), // must be a date
-  type('updatedAt', types.instance(Date), e => { throw e }, true), // must be a date or nullish
-  type('sponsor', types.fulfill(user), e => { throw e }, true) // must be a user or nullish
+  type('id', types.number, e => e()), // must be a number
+  type('name', types.string, e => e()), // must be a string
+  type('createdAt', types.instance(Date), e => e()), // must be a date
+  type('updatedAt', types.instance(Date), e => e(), true), // must be a date or nullish
+  type('sponsor', types.fulfill(user), e => e(), true) // must be a user or nullish
 )
 ```
 
@@ -126,7 +126,7 @@ const fn = fnType.of(async function * (first, ...rest) {
    while (values.length) {
       yield values.shift()
    }
-}, e => { throw e })
+}, e => e())
 
 const generator = fn('first', 'second')
 
