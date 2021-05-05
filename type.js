@@ -1,4 +1,4 @@
-import { etches, fulfill, fulfills, model } from '@etchedjs/etched'
+import { etches, fulfill, fulfills, iterable, model } from '@etchedjs/etched'
 
 const { freeze, prototype: { isPrototypeOf } } = Object
 
@@ -6,14 +6,78 @@ const base = model({
   set value (value) {}
 })
 
+const argument = model(base)
+
+const result = model(base)
+
+const wrapped = new WeakMap()
+
+const wrappers = {
+  0: (name, Fn, args, expected, throwable) => ({
+    [name] (...params) {
+      merge(params, args).reduce(validateParams, [args, throwable])
+
+      const value = new.target ? new Fn(...params) : Fn(...params)
+
+      return model(expected, { value }).value
+    }
+  }[name]),
+  1: (name, fn, args, expected, throwable) => ({
+    async [name] (...params) {
+      merge(params, args).reduce(validateParams, [args, throwable])
+
+      const value = await fn(...params)
+
+      return model(expected, { value }).value
+    }
+  }[name]),
+  2: (name, fn, args, expected, throwable) => ({
+    * [name] (...params) {
+      merge(params, args).reduce(validateParams, [args, throwable])
+
+      const generator = fn(...params)
+      let value
+
+      while (1) {
+        const result = generator.next(value)
+
+        if (result.done) {
+          return model(expected, { value: result.value }).value
+        }
+
+        value = yield model(expected, { value: result.value }).value
+      }
+    }
+  }[name]),
+  3: (name, fn, args, expected, throwable) => ({
+    async * [name] (...params) {
+      merge(params, args).reduce(validateParams, [args, throwable])
+
+      const generator = fn(...params)
+      let value
+      let result
+
+      while (!result?.done) {
+        const result = await generator.next(value)
+
+        if (result.done) {
+          return model(expected, { value: result.value }).value
+        }
+
+        value = yield model(expected, { value: result.value }).value
+      }
+    }
+  }[name])
+}
+
 const flag = (current, value, key) => current + !!value * (key + 1)
 
-const merge = (params, types) => {
-  const last = types[types.length - 1]
+const merge = (params, [...args]) => {
+  const last = args[args.length - 1]
 
   return [
     ...new Map([
-      ...Array(types.length - (last && etches(rest, last))).entries(),
+      ...Array(args.length - (last && etches(rest, last))).entries(),
       ...params.entries()
     ]).values()
   ]
@@ -30,96 +94,22 @@ const validate = ({ ...inputs }, model, throwable) => {
   }
 }
 
-const validateExpected = (value, throwable, type = null) => {
-  if (type === null && value !== undefined) {
-    throw throwing(throwable, new TypeError('Must match an expected type'))
-  }
+const validateParams = ([args, throwable], value, key) => {
+  const arg = args[key] ?? null
 
-  try {
-    return fulfill(type, { value }).value
-  } catch (error) {
-    throw throwing(throwable, error)
-  }
-}
+  if (arg === null) {
+    const last = args[args.length - 1]
 
-const validateMerged = (params, types, throwable) => merge(params, types)
-  .reduce(validateParams, [types, throwable])
-
-const validateParams = ([params, throwable], value, key) => {
-  const param = params[key] ?? null
-
-  if (param === null) {
-    const last = params[params.length - 1]
-
-    if (!etches(last, rest)) {
-      throw throwable(new ReferenceError(`Unknown param @${key}`))
+    if (!etches(rest, last)) {
+      throw throwing(throwable, new ReferenceError(`Unknown param @${key}`))
     }
 
-    validateExpected(value, throwable, last)
+    model(last, { value })
   } else {
-    validateExpected(value, throwable, param)
+    model(arg, { value })
   }
 
-  return [params, throwable]
-}
-
-const wrappers = new WeakMap()
-
-const wrappings = {
-  0: (name, Fn, types, throwable) => ({
-    [name] (...params) {
-      validateMerged(params, types.params, throwable)
-
-      const value = new.target ? new Fn(...params) : Fn(...params)
-
-      return validateExpected(value, throwable, types.expected)
-    }
-  }[name]),
-  1: (name, fn, types, throwable) => ({
-    async [name] (...params) {
-      validateMerged(params, types.params, throwable)
-
-      const value = await fn(...params)
-
-      return validateExpected(value, throwable, types.expected)
-    }
-  }[name]),
-  2: (name, fn, types, throwable) => ({
-    * [name] (...params) {
-      validateMerged(params, types.params, throwable)
-
-      const generator = fn(...params)
-      let value
-
-      while (1) {
-        const result = generator.next(value)
-
-        if (result.done) {
-          break
-        }
-
-        value = yield validateExpected(result.value, throwable, types.expected)
-      }
-    }
-  }[name]),
-  3: (name, fn, types, throwable) => ({
-    async * [name] (...params) {
-      validateMerged(params, types.params, throwable)
-
-      const generator = fn(...params)
-      let value
-
-      while (1) {
-        const result = await generator.next(value)
-
-        if (result.done) {
-          break
-        }
-
-        value = yield validateExpected(result.value, throwable, types.expected)
-      }
-    }
-  }[name])
+  return [args, throwable]
 }
 
 const type = (name, type, throwable, canBeNullish = false) => {
@@ -230,17 +220,18 @@ export const array = model(
     }
   })
 
-export const arrayOf = model(
-  array,
+export const iterableOf = model(
+  iterable,
   type('type', base, () => {
     throw new TypeError('Must be a type')
   }),
   {
     set value (value) {
       const { type } = this
+      const values = [...value].values()
 
-      if (!value.every(current => fulfills(type, current))) {
-        throw new TypeError('Must be an array of the provided type')
+      if (!values.every(current => fulfills(type, current))) {
+        throw new TypeError('Must be an iterable of the provided type')
       }
     }
   })
@@ -275,46 +266,71 @@ export const instance = ({ name, prototype }) => model(
     }
   })
 
-export const fn = (type, expected = null, [...params] = []) => {
-  if (!etches(func, type)) {
-    throw new TypeError('Must be a func type')
+export const arg = (paramType, expected, throwable, canBeNullish = false) => {
+  if (!etches(param, paramType)) {
+    throw new TypeError('Must be a param type')
   }
 
-  if (!etches(base, expected ?? base)) {
+  return model(
+    argument,
+    paramType,
+    type('value', expected, throwable, canBeNullish))
+}
+
+export const expected = (expected, throwable, canBeNullish) => {
+  if (!etches(base, expected)) {
     throw new TypeError('Must be a type')
   }
 
-  params.forEach((current, key) => {
-    if (!etches(param, current)) {
-      throw new TypeError(`Must by a param @${key}`)
+  return model(
+    result,
+    type('value', expected, throwable, canBeNullish))
+}
+
+export const fn = (type, expected, [...args], throwable) => {
+  if (!etches(syncFunction, type)) {
+    throw new TypeError('Must be a func type')
+  }
+
+  if (!etches(result, expected)) {
+    throw new TypeError('Must be a result type')
+  }
+
+  args.forEach((current, key) => {
+    if (!etches(argument, current)) {
+      throw new TypeError(`Must by an argument @${key}`)
     }
 
-    if (key < params.length - 1 && etches(rest, current)) {
-      throw new TypeError(`Must by a non-rest param @${key}`)
+    if (key < args.length - 1 && etches(rest, current)) {
+      throw new TypeError(`Must by a non-rest argument @${key}`)
     }
   })
 
-  const key = [type.async, type.generatorFunc].reduce(flag, 0)
+  const key = [type.async, type.generator].reduce(flag, 0)
 
-  return model(type, {
-    expected: expected ?? undefined,
-    params: freeze(params),
-    set value (value) {
-      const wrapper = wrappers.get(value)
+  return model(
+    type,
+    {
+      expected,
+      args: freeze(args),
+      set value (value) {
+        const wrapper = wrapped.get(value)
 
-      if (!wrapper || !etches(wrapper, this)) {
-        throw new TypeError('Must be a func')
+        if (!wrapper || !etches(wrapper, this)) {
+          throw new TypeError('Must be a func')
+        }
+      },
+      of (fn) {
+        const { args, expected } = this
+        const { name } = fn
+        const wrapper = wrappers[key](name, fn, args, expected, throwable)
+
+        wrapped.set(wrapper, this)
+
+        return wrapper
       }
-    },
-    of (fn, throwable) {
-      const { name } = fn
-      const wrapper = wrappings[key](name, fn, { expected, params }, throwable)
-
-      wrappers.set(wrapper, this)
-
-      return wrapper
     }
-  })
+  )
 }
 
 export const param = model(base)
@@ -325,30 +341,30 @@ export const rest = model(
     rest: true
   })
 
-export const func = model(
+export const syncFunction = model(
   base,
-  type('value', instance(Function), e => { throw e }))
+  type('value', instance(Function), e => e()))
 
 export const asyncFunc = model(
-  func,
-  type('value', instance((async () => {}).constructor), e => { throw e }),
+  syncFunction,
+  type('value', instance((async () => {}).constructor), e => e()),
   {
     async: true
   })
 
-export const generatorFunc = model(
-  func,
-  type('value', instance(function * () {}.constructor), e => { throw e }),
+export const syncGenerator = model(
+  syncFunction,
+  type('value', instance(function * () {}.constructor), e => e()),
   {
-    generatorFunc: true
+    generator: true
   })
 
-export const asyncGeneratorFunc = model(
-  func,
-  type('value', instance(async function * () {}.constructor), e => { throw e }),
+export const asyncGenerator = model(
+  syncFunction,
+  type('value', instance(async function * () {}.constructor), e => e()),
   {
     async: true,
-    generatorFunc: true
+    generator: true
   })
 
 export default type

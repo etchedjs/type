@@ -19,8 +19,7 @@ A utility to type the [`@etchedjs/etched`](https://github.com/etchedjs/etched) m
 Used create a typing model
  * `name`: the setter name
  * `wantedType`: the wanted type, one of the `types` or a type extending one of them
- * `throwable`: a callback function to throw the error on the current line, always just `e => { throw e }`
-   (it avoids digging into the error stack trace)
+ * `throwable`: a callback function to throw the error on the current line, always just `e => e()`
  * `canBeNullish`: an optional boolean to allow a nullish value
 
 Example:
@@ -71,23 +70,23 @@ A type to validate a symbol
 
 A type to validate an array
 
-#### `arrayOf`
+#### `iterableOf`
 
-A type to validate an array of provided type
+A type to validate an etched `iterable` of provided type
 
-#### `func`
+#### `syncFunction`
 
 A type to validate a function
 
-#### `asyncFunc`
+#### `asyncFunction`
 
 A type to validate an asynchronous function
 
-#### `generatorFunc`
+#### `syncGenerator`
 
 A type to validate a generator function
 
-#### `asyncGeneratorFunc`
+#### `asyncGenerator`
 
 A type to validate an asynchronous generator function
 
@@ -105,34 +104,54 @@ Returns a type to validate an object that **fulfills** the provided `model`
 
 Returns a type to validate an object that **inherit** from the provided `constructor` prototype
 
-#### `fn(type, expected = null, [...params] = [])`
+#### `arg(type, expected, throwable, canBeNullish = false)`
 
-* `type`: Must be one of `func`/`asyncFunc`/`generator`/`asyncGenerator`
-* `expected`: Must be a type of be **nullish**, to validate the return value (or any promised/yielded one)
+* `type`: Must be one of `param`/`rest`
+* `expected`: Must be a type to validate the param value
+* `throwable`: a callback function to throw the error on the current line, always just `e => e()`
+* `canBeNullish`: an optional boolean to allow a nullish value
+
+#### `expected(expected, throwable, canBeNullish = false)`
+
+* `expected`: Must be a type to validate the return value (or any promised/yielded one)
+* `throwable`: a callback function to throw the error on the current line, always just `e => e()`
+* `canBeNullish`: an optional boolean to allow a nullish value
+
+#### `fn(type, expected, [...args], throwable)`
+
+* `type`: Must be one of `syncFunction`/`asyncFunction`/`syncGenerator`/`asyncGenerator`
+* `expected`: Must be a type to validate the return value (or any promised/yielded one)
 * `params`: an optional array containing the argument types, inheriting from `param` or `rest`
+* `throwable`: a callback function to throw the error on the current line, always just `e => e()`
   
-Returns a type to validate a function, with a `.of(fn, throwable)` that returns a typed function that wraps the provided one.
+Returns a type to validate a function, with a `.of(fn)` that returns a typed function that wraps the provided one.
 
 Example
 ```js
-const fnType = types.fn(types.asyncGeneratorFunc, types.string, [
-  model(types.param, types.string),
-  model(types.rest, types.string)
-])
+const fnType = types.fn(
+  types.asyncGenerator,
+  types.expected(types.string, e => e()),
+  [
+     types.arg(types.param, types.string, e => e()),
+     types.arg(types.rest, types.string, e => e())
+  ],
+  e => e())
 
 const fn = fnType.of(async function * (first, ...rest) {
    const values = [first, ...rest]
 
-   while (values.length) {
+   while (values.length > 1) {
       yield values.shift()
    }
-}, e => e())
 
-const generator = fn('first', 'second')
+   return values.shift()
+})
+
+const generator = fn('first', 'second', 'third')
 
 console.log(await generator.next()) // { value: 'first', done: false }
 console.log(await generator.next()) // { value: 'second', done: false }
-console.log(await generator.next()) // { value: undefined, done: true }
+console.log(await generator.next()) // { value: 'third', done: false }
 ```
 
 ### Flags
