@@ -221,10 +221,11 @@ export const array = model(
   })
 
 export const iterableOf = model(
-  iterable,
+  object,
   type('type', base, () => {
     throw new TypeError('Must be a type')
   }),
+  type('value', etched(iterable), e => e()),
   {
     set value (value) {
       const { type } = this
