@@ -70,6 +70,10 @@ A type to validate a symbol
 
 A type to validate an array
 
+#### `key`
+
+A type to validate a key (`string` or `symbol`)
+
 #### `iterableOf`
 
 A type to validate an etched `iterable` of provided type

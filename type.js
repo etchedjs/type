@@ -55,9 +55,8 @@ const wrappers = {
 
       const generator = fn(...params)
       let value
-      let result
 
-      while (!result?.done) {
+      while (1) {
         const result = await generator.next(value)
 
         if (result.done) {
@@ -139,7 +138,7 @@ export const nullish = model(
         if ((value ?? null) !== null) {
           const { type } = this
 
-          validate({ value }, type, throwable => { throw throwable() })
+          validate({ value }, type, e => e())
         }
       } catch (error) {
         const { constructor, errors } = error
@@ -366,6 +365,16 @@ export const asyncGenerator = model(
   {
     async: true,
     generator: true
+  })
+
+export const key = model(
+  base,
+  {
+    set value (value) {
+      if (['string', 'symbol'].includes(typeof value)) {
+        throw new TypeError('Must be a symbol or a string')
+      }
+    }
   })
 
 export default type
