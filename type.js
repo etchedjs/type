@@ -183,7 +183,7 @@ export const bigint = model(
   base,
   {
     set value (value) {
-      if (typeof value === 'bigint') {
+      if (typeof value !== 'bigint') {
         throw new TypeError('Must be a bigint')
       }
     }
@@ -371,7 +371,7 @@ export const key = model(
   base,
   {
     set value (value) {
-      if (['string', 'symbol'].includes(typeof value)) {
+      if (!['string', 'symbol'].includes(typeof value)) {
         throw new TypeError('Must be a symbol or a string')
       }
     }
