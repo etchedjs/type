@@ -153,7 +153,7 @@ export const object = model(
   base,
   {
     set value (value) {
-      if (typeof value !== 'object' || value === null) {
+      if (typeof value !== 'object' || value === null || Array.isArray(value)) {
         throw new TypeError('Must be an object')
       }
     }
