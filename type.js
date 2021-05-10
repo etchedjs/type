@@ -219,23 +219,6 @@ export const array = model(
     }
   })
 
-export const iterableOf = model(
-  object,
-  type('type', base, () => {
-    throw new TypeError('Must be a type')
-  }),
-  type('value', etched(iterable), e => e()),
-  {
-    set value (value) {
-      const { type } = this
-      const values = [...value].values()
-
-      if (!values.every(current => fulfills(type, current))) {
-        throw new TypeError('Must be an iterable of the provided type')
-      }
-    }
-  })
-
 export const etched = type => model(
   object,
   {
@@ -262,6 +245,23 @@ export const instance = ({ name, prototype }) => model(
     set value (value) {
       if (!isPrototypeOf.call(prototype, value)) {
         throw new TypeError(`Must be an instance of ${name}`)
+      }
+    }
+  })
+
+export const iterableOf = model(
+  object,
+  type('type', base, () => {
+    throw new TypeError('Must be a type')
+  }),
+  type('value', etched(iterable), e => e()),
+  {
+    set value (value) {
+      const { type } = this
+      const values = [...value].values()
+
+      if (!values.every(current => fulfills(type, current))) {
+        throw new TypeError('Must be an iterable of the provided type')
       }
     }
   })
