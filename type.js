@@ -2,7 +2,7 @@ import { etches, fulfill, fulfills, iterable, model } from '@etchedjs/etched'
 
 const { freeze, prototype: { isPrototypeOf } } = Object
 
-function flag (type) {
+function tag (type) {
   return model({
     [Symbol('@etchedjs/type')]: type
   })
@@ -135,7 +135,7 @@ const type = (name, type, throwable, canBeNullish = false) => {
 
 export const nullish = model(
   base,
-  flag('nullish'),
+  tag('nullish'),
   {
     set type (value) {
       if (!etches(base, value)) {
@@ -160,7 +160,7 @@ export const nullish = model(
 
 export const object = model(
   base,
-  flag('object'),
+  tag('object'),
   {
     set value (value) {
       if (typeof value !== 'object' || value === null || Array.isArray(value)) {
@@ -171,7 +171,7 @@ export const object = model(
 
 export const boolean = model(
   base,
-  flag('boolean'),
+  tag('boolean'),
   {
     set value (value) {
       if (!!value !== value) {
@@ -182,7 +182,7 @@ export const boolean = model(
 
 export const string = model(
   base,
-  flag('string'),
+  tag('string'),
   {
     set value (value) {
       if (typeof value !== 'string' || `${value}` !== value) {
@@ -193,7 +193,7 @@ export const string = model(
 
 export const bigint = model(
   base,
-  flag('bigint'),
+  tag('bigint'),
   {
     set value (value) {
       if (typeof value !== 'bigint') {
@@ -204,7 +204,7 @@ export const bigint = model(
 
 export const number = model(
   base,
-  flag('number'),
+  tag('number'),
   {
     set value (value) {
       if (!Number.isFinite(value)) {
@@ -215,7 +215,7 @@ export const number = model(
 
 export const symbol = model(
   base,
-  flag('symbol'),
+  tag('symbol'),
   {
     set value (value) {
       if (typeof value !== 'symbol') {
@@ -226,7 +226,7 @@ export const symbol = model(
 
 export const array = model(
   base,
-  flag('array'),
+  tag('array'),
   {
     set value (value) {
       if (!Array.isArray(value)) {
@@ -237,7 +237,7 @@ export const array = model(
 
 export const etched = type => model(
   object,
-  flag('etched'),
+  tag('etched'),
   {
     set value (value) {
       if (!etches(type, value)) {
@@ -248,7 +248,7 @@ export const etched = type => model(
 
 export const fulfilled = type => model(
   object,
-  flag('fulfilled'),
+  tag('fulfilled'),
   {
     set value (value) {
       if (!fulfills(type, value)) {
@@ -259,7 +259,7 @@ export const fulfilled = type => model(
 
 export const instance = ({ name, prototype }) => model(
   base,
-  flag('instance'),
+  tag('instance'),
   {
     set value (value) {
       if (!isPrototypeOf.call(prototype, value)) {
@@ -270,7 +270,7 @@ export const instance = ({ name, prototype }) => model(
 
 export const iterableOf = model(
   object,
-  flag('iterableOf'),
+  tag('iterableOf'),
   type('type', base, () => {
     throw new TypeError('Must be a type')
   }),
@@ -294,7 +294,7 @@ export const arg = (paramType, expected, throwable, canBeNullish = false) => {
   return model(
     argument,
     paramType,
-    flag('arg'),
+    tag('arg'),
     type('value', expected, throwable, canBeNullish))
 }
 
@@ -305,7 +305,7 @@ export const expected = (expected, throwable, canBeNullish) => {
 
   return model(
     result,
-    flag('expected'),
+    tag('expected'),
     type('value', expected, throwable, canBeNullish))
 }
 
@@ -332,7 +332,7 @@ export const fn = (type, expected, [...args], throwable) => {
 
   return model(
     type,
-    flag('fn'),
+    tag('fn'),
     {
       expected,
       args: freeze(args),
@@ -358,24 +358,24 @@ export const fn = (type, expected, [...args], throwable) => {
 
 export const param = model(
   base,
-  flag('type')
+  tag('type')
 )
 
 export const rest = model(
   param,
-  flag('rest'),
+  tag('rest'),
   {
     rest: true
   })
 
 export const syncFunction = model(
   base,
-  flag('syncFunction'),
+  tag('syncFunction'),
   type('value', instance(Function), e => e()))
 
 export const asyncFunc = model(
   syncFunction,
-  flag('asyncFunction'),
+  tag('asyncFunction'),
   type('value', instance((async () => {}).constructor), e => e()),
   {
     async: true
@@ -383,7 +383,7 @@ export const asyncFunc = model(
 
 export const syncGenerator = model(
   syncFunction,
-  flag('syncGenerator'),
+  tag('syncGenerator'),
   type('value', instance(function * () {}.constructor), e => e()),
   {
     generator: true
@@ -391,7 +391,7 @@ export const syncGenerator = model(
 
 export const asyncGenerator = model(
   syncFunction,
-  flag('asyncGenerator'),
+  tag('asyncGenerator'),
   type('value', instance(async function * () {}.constructor), e => e()),
   {
     async: true,
@@ -400,7 +400,7 @@ export const asyncGenerator = model(
 
 export const key = model(
   base,
-  flag('key'),
+  tag('key'),
   {
     set value (value) {
       if (!['string', 'symbol'].includes(typeof value)) {
