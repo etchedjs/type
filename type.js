@@ -9,7 +9,7 @@ function tag (type) {
 }
 
 const base = model(
-  flag('type'),
+  tag('type'),
   {
     set value (value) {}
   })
