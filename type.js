@@ -373,7 +373,7 @@ export const syncFunction = model(
   tag('syncFunction'),
   type('value', instance(Function), e => e()))
 
-export const asyncFunc = model(
+export const asyncFunction = model(
   syncFunction,
   tag('asyncFunction'),
   type('value', instance((async () => {}).constructor), e => e()),
