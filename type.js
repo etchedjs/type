@@ -22,7 +22,7 @@ const wrapped = new WeakMap()
 
 const wrappers = {
   0: (name, Fn, args, expected, throwable) => ({
-    [name] (...params) {
+    [name]: function (...params) {
       merge(params, args).reduce(validateParams, [args, throwable])
 
       const value = new.target ? new Fn(...params) : Fn(...params)
