@@ -278,7 +278,7 @@ export const iterableOf = model(
   {
     set value (value) {
       const { type } = this
-      const values = [...value].values()
+      const values = [...[...value].values()]
 
       if (!values.every(current => fulfills(type, current))) {
         throw new TypeError('Must be an iterable of the provided type')
