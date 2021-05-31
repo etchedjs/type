@@ -74,10 +74,6 @@ A type to validate an array
 
 A type to validate a key (`string` or `symbol`)
 
-#### `iterableOf`
-
-A type to validate an etched `iterable` of provided type
-
 #### `syncFunction`
 
 A type to validate a function
@@ -107,6 +103,10 @@ Returns a type to validate an object that **fulfills** the provided `model`
 #### `instance(constructor)`
 
 Returns a type to validate an object that **inherit** from the provided `constructor` prototype
+
+#### `iterableOf(type)`
+
+Returns a type to validate an etched `iterable` of provided type
 
 #### `arg(type, expected, throwable, canBeNullish = false)`
 

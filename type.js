@@ -1,6 +1,18 @@
-import { etches, fulfill, fulfills, iterable, model } from '@etchedjs/etched'
+import { etch, etches, fulfill, fulfills, iterable, model } from '@etchedjs/etched'
 
 const { freeze, prototype: { isPrototypeOf } } = Object
+
+const AggregateError = (() => {
+  try {
+    fulfill(model({
+      set a (value) {
+        throw new Error()
+      }
+    }))
+  } catch ({ constructor }) {
+    return constructor
+  }
+})()
 
 function tag (type) {
   return model({
@@ -268,7 +280,7 @@ export const instance = ({ name, prototype }) => model(
     }
   })
 
-export const iterableOf = model(
+export const iterableOf = expectedType => model(
   object,
   tag('iterableOf'),
   type('type', base, () => {
@@ -276,12 +288,22 @@ export const iterableOf = model(
   }),
   type('value', etched(iterable), e => e()),
   {
+    type: expectedType,
     set value (value) {
       const { type } = this
       const values = [...new Map(value).values()]
+      const errors = values.reduce((errors, value, key) => {
+        try {
+          etch(type, { value })
 
-      if (!values.every(current => fulfills(type, current))) {
-        throw new TypeError('Must be an iterable of the provided type')
+          return errors
+        } catch ({ errors: [, error]}) {
+          return [...errors, [key, error]]
+        }
+      }, [])
+
+      if (errors.length) {
+        throw new AggregateError(errors, 'Must be an iterable of the expected type')
       }
     }
   })
