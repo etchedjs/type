@@ -125,8 +125,8 @@ Returns a type to validate an etched `iterable` of provided type
 
 * `type`: Must be one of `syncFunction`/`asyncFunction`/`syncGenerator`/`asyncGenerator`
 * `expected`: Must be a type to validate the return value (or any promised/yielded one)
-* `params`: an optional array containing the argument types, inheriting from `param` or `rest`
-* `throwable`: a callback function to throw the error on the current line, always just `e => e()`
+* `params`: An optional array containing the argument types, inheriting from `param` or `rest`
+* `throwable`: A callback function to throw the error on the current line, always just `e => e()`
   
 Returns a type to validate a function, with a `.of(fn)` that returns a typed function that wraps the provided one.
 
@@ -158,6 +158,51 @@ console.log(await generator.next()) // { value: 'second', done: false }
 console.log(await generator.next()) // { value: 'third', done: false }
 ```
 
+#### `transformer(inputType, outputType, fn)`
+
+ * `inputType`: The required input type
+ * `outputType`: The required output type
+ * `throwable`: A callback function to throw the error on the current line, always just `e => e()`
+ * `fn`: A function transforming an etched instance to another one
+
+Returns your function type guarded.
+
+It enforces
+ * `inputType` & `outputType` to be some etched object
+ * `fn` to be a function
+ * the `instance` to satisfy the `inputType`
+ * the `fn` result to satisfy the `outputType`
+
+Example
+```js
+const inputModel = model(
+  type('a', types.number, e => e()),
+  type('b', types.number, e => e()),
+  type('c', types.number, e => e())
+)
+
+const outputModel = model(
+  type('d', types.number, e => e()),
+  type('e', types.number, e => e()),
+  type('f', types.number, e => e())
+)
+
+const instance = fulfill(inputModel, {
+  a: 1,
+  b: 2,
+  c: 3
+})
+
+const transform = types.transformer(
+  types.fulfilled(inputModel),
+  types.fulfilled(outputModel),
+  e => e(),
+  ({a: d, b: e, c: f}) => fulfill(outputModel, {d, e, f})
+)
+
+console.log(transform(instance)) // { d: 1, e: 2, f: 3 }
+```
+
 ### Flags
 
 The flags are some special types to add a specific behavior on a type
@@ -180,7 +225,7 @@ model(param, type)
 
 #### `rest`
 
-A flag that extends `param` but for a rest parameterparameter
+A flag that extends `param` but for a rest parameter
 
 ```js
 model(rest, type)

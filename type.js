@@ -431,4 +431,23 @@ export const key = model(
     }
   })
 
+export const transformer = fn(
+  syncFunction,
+  expected(syncFunction, e => e()),
+  [
+    arg(param, etched(base), e => e()),
+    arg(param, etched(base), e => e()),
+    arg(param, syncFunction, e => e()),
+    arg(param, syncFunction, e => e())
+  ],
+  e => e()
+).of((inputType, outputType, transform, e) => fn(
+  syncFunction,
+  expected(outputType, e),
+  [
+    arg(param, inputType, e => e())
+  ],
+  e => e()
+).of(transform))
+
 export default type

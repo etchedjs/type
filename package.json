@@ -1,7 +1,7 @@
 {
   "name": "@etchedjs/type",
-  "version": "4.0.3",
-  "description": "A utility to type the @etchedjs/etched models.",
+  "version": "4.2.0",
+  "description":"A utility to type the @etchedjs/etched models.",
   "main": "type.js",
   "type": "module",
   "scripts": {
