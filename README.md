@@ -158,7 +158,7 @@ console.log(await generator.next()) // { value: 'second', done: false }
 console.log(await generator.next()) // { value: 'third', done: false }
 ```
 
-#### `transformer(inputType, outputType, fn)`
+#### `transformer(inputType, outputType, throwable, fn)`
 
  * `inputType`: The required input type
  * `outputType`: The required output type

@@ -441,9 +441,9 @@ export const transformer = fn(
     arg(param, syncFunction, e => e())
   ],
   e => e()
-).of((inputType, outputType, transform, e) => fn(
+).of((inputType, outputType, throwable, transform) => fn(
   syncFunction,
-  expected(outputType, e),
+  expected(outputType, throwable),
   [
     arg(param, inputType, e => e())
   ],
